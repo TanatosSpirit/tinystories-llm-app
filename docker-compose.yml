@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  tinystories:
+    build: .
+    container_name: tinystories-app
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./model.onnx:/app/model.onnx:ro
+      # - ./models:/app/models:ro
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 1h
+      timeout: 10s
+      retries: 3
+      start_period: 40s

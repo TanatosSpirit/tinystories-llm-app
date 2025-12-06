@@ -1,0 +1,36 @@
+# Исключаем модель из образа (будет монтироваться)
+model.onnx
+*.onnx
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+dist/
+build/
+
+# Виртуальные окружения
+env/
+venv/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Другое
+README.md
+.DS_Store
+*.log
+.env
