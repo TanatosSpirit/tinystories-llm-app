@@ -49,6 +49,11 @@ class Narrator:
     def generate_text(self, prompt):
         story_start = []
 
+        prompt = prompt.strip()
+
+        if prompt:
+            prompt += " "
+
         for ch in prompt:
             code = ord(ch)
             if 32 <= code <= 126 or ch in '\n':
