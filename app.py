@@ -4,7 +4,7 @@ from inference import Narrator
 # Настройка страницы
 st.set_page_config(
     page_title="TinyStories Generator",
-    page_icon="📖",
+    page_icon="",
     layout="centered"
 )
 
@@ -30,6 +30,55 @@ except Exception as e:
     st.stop()
 
 # Разделитель
+st.divider()
+method = st.selectbox(
+    "Стратегия семплирования",
+    options=["Greedy", "Only Temp", "Top-k + Temp", "Top-p + Temp", ],
+    index=0
+)
+
+gen_params = {}
+
+if method == "Greedy":
+    st.info("Выбор самого вероятного токена.")
+    gen_params["method"] = 0
+
+elif method == "Only Temp":
+    st.info("Контроль случайности выбора следующего токена (выше = креативнее, ниже = предсказуемее).")
+    temperature = st.slider("temperature", min_value=0.1, max_value=2.0, value=0.8, step=0.05)
+    gen_params["method"] = 1
+    gen_params["temp"] = temperature
+
+elif method == "Top-k + Temp":
+    st.info("Случайный выбор из k штук самых вероятных токенов. Температура делает выбор внутри этого набора более или менее случайным.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        top_k = st.slider("top_k", min_value=1, max_value=100, value=30, step=1, key="top_k")
+    with col2:
+        temperature = st.slider("temperature", min_value=0.1, max_value=2.0, value=0.8, step=0.05, key="temp")
+
+    gen_params["method"] = 2
+    gen_params["top_k"] = top_k
+    gen_params["temp"] = temperature
+
+elif method == "Top-p + Temp":
+    st.info("Выбор из минимального набора самых вероятных токенов, чья суммарная вероятность ≥ p (nucleus sampling).  \nТемпература делает выбор внутри этого набора более или менее случайным.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        top_p = st.slider("top_p", min_value=0.5, max_value=1.0, value=0.92, step=0.01, key="top_p")
+    with col2:
+        temperature = st.slider("temperature", min_value=0.1, max_value=2.0, value=0.8, step=0.05, key="temp")
+
+    gen_params["method"] = 3
+    gen_params["top_p"] = top_p
+    gen_params["temp"] = temperature
+
+# st.write("Итоговые параметры для `generate()`:")
+# st.code(gen_params, language="python")
+
+
 st.divider()
 
 # Ввод промпта
@@ -57,7 +106,7 @@ if st.button("Сгенерировать", type="primary", use_container_width=T
     else:
         with st.spinner("Генерирую текст..."):
             try:
-                generated_text, prompt_length = model.generate_text(prompt)
+                generated_text, prompt_length = model.generate_text(prompt, **gen_params)
 
                 # Вывод результата
                 st.divider()
