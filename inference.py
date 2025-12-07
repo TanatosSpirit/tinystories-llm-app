@@ -46,7 +46,7 @@ class Narrator:
         self.model = Inference(model_path)
         self.tokenizer = BPETokenizer(tokenizer_path)
 
-    def generate_text(self, prompt):
+    def generate_text(self, prompt, **gen_params):
         story_start = []
 
         prompt = prompt.strip()
@@ -81,7 +81,59 @@ class Narrator:
             decoded_sequence_current = decoded_sequence[:prompt_length]
             prediction = self.model(decoded_sequence_current)
             current_output = prediction[:, -1, :]
-            current_token = np.argmax(current_output, axis=1)
+            if gen_params['method'] == 0: # Greedy
+                current_token = np.argmax(current_output, axis=1)
+
+            elif gen_params['method'] == 1: # Only Temp
+                temp = max(float(gen_params['temp']), float(1e-9))
+                logits = current_output / temp
+                probs = np.exp(logits - np.max(logits, axis=-1, keepdims=True))
+                probs = probs / np.sum(probs, axis=-1, keepdims=True)
+                current_token = np.array([np.random.choice(len(p), p=p) for p in probs])
+
+            elif gen_params['method'] == 2: # top-k + temp
+                k = gen_params['top_k']
+                temp = max(float(gen_params['temp']), float(1e-9))
+                logits = current_output[0] / temp
+
+                top_k_idx = np.argpartition(logits, -k)[-k:]
+                top_k_logits = logits[top_k_idx]
+
+                probs = np.exp(top_k_logits - np.max(top_k_logits))
+                probs = probs / probs.sum()
+
+                current_token = np.random.choice(top_k_idx, p=probs)
+
+            elif gen_params['method'] == 3: # top-p + temp
+                p = gen_params['top_p']
+                temp = max(float(gen_params['temp']), float(1e-9))
+
+                logits = current_output[0] / temp
+
+                sorted_idx = np.argsort(logits)[::-1]
+
+                sorted_logits = logits[sorted_idx]
+                max_logit = sorted_logits[0]
+                probs = np.exp(sorted_logits - max_logit)
+                probs /= probs.sum()
+
+
+                cumprobs = np.cumsum(probs)
+                cutoff_idx = np.searchsorted(cumprobs, p, side='right') + 1
+                # print(cutoff_idx)
+                cutoff_idx = min(cutoff_idx, len(cumprobs))
+                # print("max_prob:", probs[0], "p:", p, "cutoff_idx:", cutoff_idx)
+
+                top_p_idx = sorted_idx[:cutoff_idx]
+                top_p_probs = probs[:cutoff_idx]
+
+                # Перенормализация (если p < 1.0)
+                if cutoff_idx < len(probs):
+                    top_p_probs /= top_p_probs.sum()
+
+                # print("Sampling from", len(top_p_idx), "tokens:", top_p_idx[:5])
+                current_token = np.random.choice(top_p_idx, p=top_p_probs)
+
 
             next_token = np.where(
                 finished_sequences,
