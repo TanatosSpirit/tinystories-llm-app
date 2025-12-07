@@ -18,15 +18,15 @@ def get_model():
     )
 
 # Заголовок
-st.title("📖 TinyStories Text Generator")
+st.title("TinyStories Text Generator")
 st.markdown("Генерация текста с помощью decoder-only transformer")
 
 # Инициализация модели
 try:
     model = get_model()
-    st.success("✅ Модель загружена успешно")
+    st.success("Модель загружена успешно")
 except Exception as e:
-    st.error(f"❌ Ошибка загрузки модели: {e}")
+    st.error(f"Ошибка загрузки модели: {e}")
     st.stop()
 
 # Разделитель
@@ -41,42 +41,33 @@ prompt = st.text_area(
 )
 
 # Параметры генерации
-col1, col2 = st.columns(2)
-with col1:
-    max_length = st.slider(
-        "Максимальная длина",
-        min_value=10,
-        max_value=200,
-        value=50,
-        step=10
-    )
-with col2:
-    temperature = st.slider(
-        "Temperature",
-        min_value=0.1,
-        max_value=2.0,
-        value=0.8,
-        step=0.1
-    )
+# temperature = st.slider(
+#     "Temperature",
+#     min_value=0.1,
+#     max_value=2.0,
+#     value=0.8,
+#     step=0.1
+# )
+temperature = 0
 
 # Кнопка генерации
-if st.button("🚀 Сгенерировать", type="primary", use_container_width=True):
+if st.button("Сгенерировать", type="primary", use_container_width=True):
     if not prompt.strip():
         st.warning("⚠️ Пожалуйста, введите промпт")
     else:
         with st.spinner("Генерирую текст..."):
             try:
-                generated_text = model.generate_text(prompt)
+                generated_text, prompt_length = model.generate_text(prompt)
 
                 # Вывод результата
                 st.divider()
-                st.subheader("📝 Результат:")
+                st.subheader("Результат:")
                 st.text(generated_text)
 
                 # Дополнительная информация
-                with st.expander("ℹ️ Детали генерации"):
+                with st.expander("Детали генерации"):
                     st.write(f"**Промпт:** {prompt}")
-                    st.write(f"**Длина:** {len(generated_text.split())} слов")
+                    st.write(f"**Длина:** {prompt_length} токенов")
                     st.write(f"**Temperature:** {temperature}")
 
             except Exception as e:

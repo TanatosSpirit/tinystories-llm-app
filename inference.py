@@ -69,9 +69,10 @@ class Narrator:
 
         finished_sequences = np.zeros(1, dtype=bool)
 
-        inference_step = 0
+        max_seq_length = 350
+        max_seq_length = max_seq_length - prompt_length
 
-        while (not finished_sequences.all()) and (inference_step < 350):
+        while (not finished_sequences.all()) and (prompt_length < max_seq_length):
             decoded_sequence_current = decoded_sequence[:prompt_length]
             prediction = self.model(decoded_sequence_current)
             current_output = prediction[:, -1, :]
@@ -90,4 +91,4 @@ class Narrator:
 
             prompt_length += 1
 
-        return self.tokenizer.decode(decoded_sequence)
+        return self.tokenizer.decode(decoded_sequence), prompt_length
