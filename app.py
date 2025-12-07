@@ -89,35 +89,31 @@ prompt = st.text_area(
     help="Введите текст, который модель продолжит"
 )
 
-# Параметры генерации
-# temperature = st.slider(
-#     "Temperature",
-#     min_value=0.1,
-#     max_value=2.0,
-#     value=0.8,
-#     step=0.1
-# )
-temperature = 0
+story_length = 0
+def token_generator():
+    for token in model.generate_text(prompt, **gen_params):
+        if isinstance(token, dict):
+            global story_length
+            story_length = token['length']
+        else:
+            yield token.replace('\n', '  \n')
 
-# Кнопка генерации
+
 if st.button("Сгенерировать", type="primary", use_container_width=True):
     if not prompt.strip():
         st.warning("⚠️ Пожалуйста, введите промпт")
     else:
         with st.spinner("Генерирую текст..."):
             try:
-                generated_text, prompt_length = model.generate_text(prompt, **gen_params)
-
-                # Вывод результата
                 st.divider()
-                st.subheader("Результат:")
-                st.text(generated_text)
+                st.subheader("История:")
+
+                st.write_stream(token_generator())
 
                 # Дополнительная информация
                 with st.expander("Детали генерации"):
                     st.write(f"**Промпт:** {prompt}")
-                    st.write(f"**Длина:** {prompt_length} токенов")
-                    st.write(f"**Temperature:** {temperature}")
+                    st.write(f"**Длина:** {story_length} токенов")
 
             except Exception as e:
                 st.error(f"❌ Ошибка генерации: {e}")

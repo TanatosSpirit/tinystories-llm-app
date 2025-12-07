@@ -54,6 +54,8 @@ class Narrator:
         if prompt:
             prompt += " "
 
+        yield prompt
+
         for ch in prompt:
             code = ord(ch)
             if 32 <= code <= 126 or ch in '\n':
@@ -146,6 +148,11 @@ class Narrator:
             just_finished = (next_token == 1)
             finished_sequences = np.logical_or(finished_sequences, just_finished)
 
+            # Декодируем только новый токен и возвращаем его
+            if not finished_sequences.all():
+                new_token_text = self.tokenizer.decode(decoded_sequence[prompt_length:prompt_length + 1])
+                yield new_token_text
+
             prompt_length += 1
 
-        return self.tokenizer.decode(decoded_sequence), prompt_length
+        yield {'length' : prompt_length}
