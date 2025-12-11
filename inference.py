@@ -54,7 +54,7 @@ class Narrator:
         if prompt:
             prompt += " "
 
-        yield prompt
+        yield {'last': False, 'next_token': prompt, 'confidence': -1}
 
         for ch in prompt:
             code = ord(ch)
@@ -85,6 +85,9 @@ class Narrator:
             current_output = prediction[:, -1, :]
             if gen_params['method'] == 0: # Greedy
                 current_token = np.argmax(current_output, axis=1)
+                probs = np.exp(current_output - np.max(current_output, axis=-1, keepdims=True))
+                probs = probs / np.sum(probs, axis=-1, keepdims=True)
+                confidence = probs[0,current_token]
 
             elif gen_params['method'] == 1: # Only Temp
                 temp = max(float(gen_params['temp']), float(1e-9))
@@ -92,6 +95,7 @@ class Narrator:
                 probs = np.exp(logits - np.max(logits, axis=-1, keepdims=True))
                 probs = probs / np.sum(probs, axis=-1, keepdims=True)
                 current_token = np.array([np.random.choice(len(p), p=p) for p in probs])
+                confidence = probs[0, current_token]
 
             elif gen_params['method'] == 2: # top-k + temp
                 k = gen_params['top_k']
@@ -105,6 +109,10 @@ class Narrator:
                 probs = probs / probs.sum()
 
                 current_token = np.random.choice(top_k_idx, p=probs)
+
+                probs = np.exp(logits - np.max(logits, axis=-1, keepdims=True))
+                probs = probs / np.sum(probs, axis=-1, keepdims=True)
+                confidence = probs[current_token]
 
             elif gen_params['method'] == 3: # top-p + temp
                 p = gen_params['top_p']
@@ -128,6 +136,7 @@ class Narrator:
 
                 top_p_idx = sorted_idx[:cutoff_idx]
                 top_p_probs = probs[:cutoff_idx]
+                top_p_probs_cached = top_p_probs
 
                 # Перенормализация (если p < 1.0)
                 if cutoff_idx < len(probs):
@@ -135,6 +144,8 @@ class Narrator:
 
                 # print("Sampling from", len(top_p_idx), "tokens:", top_p_idx[:5])
                 current_token = np.random.choice(top_p_idx, p=top_p_probs)
+                token_pos = np.where(top_p_idx == current_token)[0][0]
+                confidence = top_p_probs_cached[token_pos]
 
 
             next_token = np.where(
@@ -151,8 +162,8 @@ class Narrator:
             # Декодируем только новый токен и возвращаем его
             if not finished_sequences.all():
                 new_token_text = self.tokenizer.decode(decoded_sequence[prompt_length:prompt_length + 1])
-                yield new_token_text
+                yield {'last': False, 'next_token': new_token_text, 'confidence': confidence}
 
             prompt_length += 1
 
-        yield {'length' : prompt_length}
+        yield {'last': True, 'length' : prompt_length}

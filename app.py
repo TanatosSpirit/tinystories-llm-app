@@ -91,12 +91,30 @@ prompt = st.text_area(
 
 story_length = 0
 def token_generator():
-    for token in model.generate_text(prompt, **gen_params):
-        if isinstance(token, dict):
+    for output in model.generate_text(prompt, **gen_params):
+        if output['last']:
             global story_length
-            story_length = token['length']
+            story_length = output['length']
         else:
-            yield token.replace('\n', '  \n')
+            token = output['next_token']
+            conf = output['confidence']
+
+            if token.endswith('\n'):
+                token = token[:-1] + '  \n'
+
+            if conf > 0.9:
+                color = "green"
+            elif conf > 0.7:
+                color = "orange"
+            elif conf > 0.0:
+                color = "red"
+            else:
+                color = "gray"
+
+            if token.endswith(" "):
+                yield f":{color}[{token}] "
+            else:
+                yield f":{color}[{token}]"
 
 
 if st.button("Сгенерировать", type="primary", use_container_width=True):
