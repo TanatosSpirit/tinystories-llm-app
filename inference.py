@@ -45,6 +45,8 @@ class Narrator:
     def __init__(self, model_path, tokenizer_path):
         self.model = Inference(model_path)
         self.tokenizer = BPETokenizer(tokenizer_path)
+        base_chars = ['\n'] + [chr(i) for i in range(32, 127)]
+        self.ascii_code_to_id = {ord(char): i + 3 for i, char in enumerate(base_chars)}
 
     def generate_text(self, prompt, **gen_params):
         story_start = []
@@ -58,16 +60,17 @@ class Narrator:
 
         for ch in prompt:
             code = ord(ch)
-            if 32 <= code <= 126 or ch in '\n':
-                story_start.append(code)
+            if 32 <= code <= 126 or code == 10:
+                story_start.append(self.ascii_code_to_id[code])
             else:
-                story_start.append(ord(' '))
+                raise RuntimeError("An unexpected char code.")
 
         prompt = self.tokenizer.encode(story_start)
         prompt = np.array(prompt[:-1], dtype=np.int64)
 
+        max_seq_length = 512
         decoded_sequence = np.full(
-            (350),
+            max_seq_length,
             fill_value=0,
             dtype=np.int64,
         )
@@ -76,7 +79,6 @@ class Narrator:
 
         finished_sequences = np.zeros(1, dtype=bool)
 
-        max_seq_length = 350
         max_seq_length = max_seq_length - prompt_length
 
         while (not finished_sequences.all()) and (prompt_length < max_seq_length):

@@ -9,6 +9,13 @@ class BPETokenizer:
 
     def _init_vocabulary(self, token2pair = None, pair2token = None):
         self.token2pair, self.pair2token = token2pair, pair2token
+        self.special_tokens = {0,1,2}
+
+        base_chars = ['\n'] + [chr(i) for i in range(32, 127)]
+        self.id_to_ascii_code = {i + len(self.special_tokens): ord(char) for i, char in enumerate(base_chars)}
+
+        self.min_idx = len(self.special_tokens)
+        self.max_idx = self.min_idx + len(base_chars)
 
     def encode(self, charCodes):
         if self.use_bounds_tokens:
@@ -52,12 +59,9 @@ class BPETokenizer:
             while stack:
                 current = stack.pop()
 
-                if 10 <= current <= 126:
-                    # Базовый токен
-                    base_tokens.append(current)
-                elif current in {0,1,2}:
-                    continue
-                elif 3 <= current <= 9 or 11 <= current <= 31:
+                if self.min_idx <= current < self.max_idx:
+                    base_tokens.append(self.id_to_ascii_code[current])
+                elif current in {0, 1, 2}:
                     continue
                 else:
                     a, b = self.token2pair[current]

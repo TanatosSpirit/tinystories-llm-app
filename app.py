@@ -1,5 +1,7 @@
 import streamlit as st
 from inference import Narrator
+import glob
+import os
 
 # Настройка страницы
 st.set_page_config(
@@ -8,23 +10,37 @@ st.set_page_config(
     layout="centered"
 )
 
-
-# Загрузка модели (кэшируется)
-@st.cache_resource
-def get_model():
-    return Narrator(
-        model_path="model.onnx",
-        tokenizer_path="tokenizer.pickle"
-    )
-
 # Заголовок
 st.title("TinyStories Text Generator")
 st.markdown("Генерация текста с помощью decoder-only transformer")
 
-# Инициализация модели
+def get_available_models():
+    return sorted(glob.glob("*.onnx"))
+
+# Загрузка модели (кэшируется)
+@st.cache_resource
+def get_model(model_path):
+    tokenizer_path = "tokenizer.pickle"
+    return Narrator(
+        model_path=model_path,
+        tokenizer_path=tokenizer_path
+    )
+
+available_models = get_available_models()
+if not available_models:
+    st.error("Не найдено ни одного файла .onnx в текущей директории")
+    st.stop()
+
+selected_model = st.selectbox(
+    "Выберите модель:",
+    options=available_models,
+    index=0,
+    help="Выберите .onnx файл модели для генерации"
+)
+
 try:
-    model = get_model()
-    st.success("Модель загружена успешно")
+    model = get_model(selected_model)
+    st.success(f"Модель '{selected_model}' загружена успешно")
 except Exception as e:
     st.error(f"Ошибка загрузки модели: {e}")
     st.stop()
