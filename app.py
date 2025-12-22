@@ -11,8 +11,8 @@ st.set_page_config(
 )
 
 # Заголовок
-st.title("TinyStories Text Generator")
-st.markdown("Генерация текста с помощью decoder-only transformer")
+st.title("TinyStories Generator")
+st.markdown("Генерация историй с помощью decoder-only transformer")
 
 def get_available_models():
     return sorted(glob.glob("*.onnx"))
@@ -46,11 +46,12 @@ except Exception as e:
     st.stop()
 
 # Разделитель
-st.divider()
+# st.divider()
 method = st.selectbox(
     "Стратегия семплирования",
     options=["Greedy", "Only Temp", "Top-k + Temp", "Top-p + Temp", ],
-    index=0
+    index=0,
+    help="Выберите, чтобы увидеть подсказку"
 )
 
 gen_params = {}
@@ -95,7 +96,7 @@ elif method == "Top-p + Temp":
 # st.code(gen_params, language="python")
 
 
-st.divider()
+# st.divider()
 
 # Ввод промпта
 prompt = st.text_area(
